@@ -1,5 +1,6 @@
 program leapfrog
     use, intrinsic :: iso_fortran_env
+    use :: OMP_LIB
     implicit none
     real :: xs(106), ys(106), zs(106), xvs(106), yvs(106), zvs(106), ms(106)
     real :: pos(3,106), poshalf(3,106), vs(3,106), vsold(3,106)
@@ -25,7 +26,7 @@ program leapfrog
     enddo
 
 as(1:3,1:nbodies) = 0
-
+!look for textfiles w/ body positions and delete if they exist already
 inquire(file="mercpos.txt",exist=isfile)
 if (isfile) then
     open(UNIT=2, file="mercpos.txt",status="OLD")
@@ -58,7 +59,7 @@ if (isfile) then
     close(UNIT=2, status="DELETE")
 end if
 
-
+!open textfiles to write positions of bodies
 open(3, file='mercpos.txt',status='new')
 open(4, file='venuspos.txt',status='new')
 open(5, file='earthpos.txt',status='new')
@@ -66,6 +67,7 @@ open(6, file='marspos.txt',status='new')
 open(7, file='juppos.txt',status='new')
 
 
+!do leapfrog
 do n=1, 100000
 vsold =  vs
 !take half step in position
