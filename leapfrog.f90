@@ -9,7 +9,7 @@ program leapfrog
     real(real64) :: deltat, g
     integer :: i, j, n, a, v, p, nbodies
     logical :: isfile
-
+    real(real64) :: start, end
     nbodies = 106
     deltat =  1d0/12
     g =  1.0
@@ -60,14 +60,15 @@ if (isfile) then
 end if
 
 !open textfiles to write positions of bodies
-open(3, file='mercpos.txt',status='new')
-open(4, file='venuspos.txt',status='new')
-open(5, file='earthpos.txt',status='new')
-open(6, file='marspos.txt',status='new')
-open(7, file='juppos.txt',status='new')
+!open(3, file='mercpos.txt',status='new')
+!open(4, file='venuspos.txt',status='new')
+!open(5, file='earthpos.txt',status='new')
+!open(6, file='marspos.txt',status='new')
+!open(7, file='juppos.txt',status='new')
 
 
 !do leapfrog
+call cpu_time(start)
 do n=1, 100000
 vsold =  vs
 !take half step in position
@@ -88,19 +89,31 @@ vsold =  vs
     enddo
 
 !advance velocity
+!$OMP PARALLEL
+!$OMP DO    
 do v= 1, nbodies
     vs(1:3,v) = vsold(1:3,v) +deltat*as(1:3,v)
 enddo
+!$OMP END DO
 as(1:3,:) = 0
 !advance positions
+
+
+!$OMP DO
 do p = 1, nbodies
+    !write(*,*) 'hello from process', OMP_GET_THREAD_NUM()
     pos(1:3,p) = poshalf(1:3,p) + 0.5*deltat*vs(1:3,p)
 enddo
-    write(3,*) pos(:,1), deltat*n, ms(1)
-    write(4,*) pos(:,2), deltat*n, ms(2)
-    write(5,*) pos(:,3), deltat*n, ms(3)
-    write(6,*) pos(:,4), deltat*n, ms(4)
-    write(7,*) pos(:,5), deltat*n, ms(5)
+!$OMP END DO
+!$OMP END PARALLEL
+    !write(3,*) pos(:,1), deltat*n, ms(1)
+    !write(4,*) pos(:,2), deltat*n, ms(2)
+    !write(5,*) pos(:,3), deltat*n, ms(3)
+    !write(6,*) pos(:,4), deltat*n, ms(4)
+    !write(7,*) pos(:,5), deltat*n, ms(5)
 enddo
+call cpu_time(end)
 
+
+write(*,*) 'time elapsed', (end-start)
 end program leapfrog
