@@ -10,12 +10,13 @@ program leapfrog
     integer :: i, j, n, a, v, p, nbodies, k, tsteps
     logical :: isfile
     real(real64) :: start, end, vel_end, vel_start, pos_end, pos_start
-    character(100) :: fname
-    nbodies = 6
+    character(100) :: fname,init
+    nbodies = 106
     deltat =  1d0/12
     g =  1.0
-
-    open(1,file = 'initial_pos.txt',status = 'old')
+    write(*,*) "Please enter filename with simulation data."
+    read(*,*) init
+    open(1,file = init,status = 'old')
     do i = 1, nbodies
         read(1,*) xs(i),ys(i),zs(i),xvs(i),yvs(i),zvs(i),ms(i)
         pos(1:3,i) = (/xs(i), ys(i), zs(i)/)
@@ -29,7 +30,7 @@ program leapfrog
 as(1:3,1:nbodies) = 0
 !look for textfiles w/ body positions and delete if they exist already
 do k=1,nbodies
-    write(fname, fmt='(a,i1,a)') 'data_',k, '.txt'
+    write(fname, fmt='(a,i0.3,a)') 'data_',k, '.txt'
     
     open(unit=1,file=fname, status='new')
     write(1,*) 0d0, 0d0, 0d0
@@ -64,7 +65,7 @@ vsold =  vs
 !advance velocity
 call cpu_time(vel_start)
 !$OMP PARALLEL
-!$OMP DO    
+!$OMP DO private(v)
     do v= 1, nbodies
         vs(1:3,v) = vsold(1:3,v) +deltat*as(1:3,v)
     enddo
@@ -74,7 +75,7 @@ call cpu_time(vel_start)
     !advance positions
     
  call cpu_time(pos_start)   
-!$OMP DO
+!$OMP DO private(p)
     do p = 1, nbodies
         !write(*,*) 'hello from process', OMP_GET_THREAD_NUM()
         pos(1:3,p) = poshalf(1:3,p) + 0.5*deltat*vs(1:3,p)
@@ -84,10 +85,10 @@ call cpu_time(pos_end)
 !$OMP END PARALLEL
 if (MODULO(n,100) .EQ. 0) then 
     do k=1,nbodies
-    write(fname, fmt='(a,i1,a)') 'data_',k, '.txt'
+    write(fname, fmt='(a,i0.3,a)') 'data_',k, '.txt'
     
     open(unit=1,file=fname, status='old',position='append')
-    write(1,*) pos(:,k), deltat*n, ms(k)
+    write(1,*) pos(:,k), vs(:,k), deltat*n, ms(k)
     close(unit=1)
     end do
 endif 
